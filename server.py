@@ -1,110 +1,113 @@
 import os
-import socket
-import threading
+import asyncio
 from dotenv import load_dotenv
 import constants as consts
 
 
 class Server:
     def __init__(self, host, port):
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.bind((host, port))
-        self.server.listen()
-        self.users = {}  
+        self.host = host
+        self.port = port
+        self.users = {}
+        self.lock = asyncio.Lock()
 
-    def sendResponse(self, client, message):
-        client.send(message.encode("utf-8"))
+    async def sendResponse(self, writer, message):
+        writer.write(message.encode("utf-8"))
+        await writer.drain()
 
-    def receiveMsg(self, client):
+    async def receiveMsg(self, reader, writer):
         while True:
             try:
                 receivedMsg = ""
-                while "\n" not in receivedMsg:
-                    receivedMsg += client.recv(4096).decode("utf-8")
-                self.processMessage(client, receivedMsg)
+                while not receivedMsg.endswith("\n"):
+                    chunk = await reader.read(4096)
+                    if not chunk:  
+                        break
+                    receivedMsg += chunk.decode("utf-8")
+                if receivedMsg:
+                    await self.processMessage(writer, receivedMsg)
+                else:  
+                     await self.disconnectClient(writer)
+                     break 
             except Exception as e:
                 print(e)
-                self.disconnectClient(client)
+                await self.disconnectClient(writer)
                 return
-
-    def processMessage(self, client, msg):
+            
+    async def processMessage(self, writer, msg):
         if consts.ClientRequest.hello() in msg:
-            self.handleHello(client, msg)
+            await self.handleHello(writer, msg)
         elif msg == consts.ClientRequest.list():
-            self.handleList(client)
+            await self.handleList(writer)
         elif consts.ClientRequest.send() in msg:
-            self.handleSend(client, msg)
+            await self.handleSend(writer, msg)
         else:
             sentMsg = consts.ServerResponses.badRequestHeader()
-            self.sendResponse(client, sentMsg)
+            await self.sendResponse(writer, sentMsg)
 
-    def handleHello(self, client, msg):
+    async def handleHello(self, writer, msg):
         inputWords = msg.split("\n")
-        # print("here", msg, inputWords)
+        print(inputWords)
         if (len(inputWords) > 3 and inputWords[2] == '') or len(inputWords) == 1:
             sentMsg = consts.ServerResponses.badRequestBody()
-            self.sendResponse(client, sentMsg)
+            await self.sendResponse(writer, sentMsg)
             return
         
         elif len(self.users) == 10:
             sentMsg = consts.ServerResponses.busy()
-            self.sendResponse(client, sentMsg)
+            await self.sendResponse(writer, sentMsg)
             return
         
         else:
             name = inputWords[1].replace("\n", "")
             if name in self.users:
                 sentMsg = consts.ServerResponses.inUse()
-                self.sendResponse(client, sentMsg)
+                await self.sendResponse(writer, sentMsg)
                 return
             
             else:
-                self.users[name] = client
+                async with self.lock:
+                    self.users[name] = writer
                 sentMsg = f'{consts.ServerResponses.hello()}{name}\n'
-                self.sendResponse(client, sentMsg)
+                await self.sendResponse(writer, sentMsg)
 
-    def handleList(self, client):
+    async def handleList(self, writer):
             availableUsers = ", ".join(self.users.keys())
-            sentMsg =  f'{consts.ServerResponses.okList()}{availableUsers}\n'
-            self.sendResponse(client, sentMsg)
+            sentMsg = f'{consts.ServerResponses.okList()}{availableUsers}\n'
+            await self.sendResponse(writer, sentMsg)
 
-
-    def handleSend(self, client, msg):
+    async def handleSend(self, writer, msg):
             inputWords = msg.split("\n")
             if (len(inputWords) < 3):
                 sentMsg = consts.ServerResponses.badRequestBody()
-                self.sendResponse(client, sentMsg)
-            else:
-                receiverName = inputWords[1]
-                if receiverName not in self.users:
-                    sentMsg = consts.ServerResponses.noUserInDb()
-                    self.sendResponse(client, sentMsg)  
-                
-                else:
-                    message = " ".join(inputWords[2:])
-                    sentMsgToClient = consts.ServerResponses.okSend()
-                    sentMsgToReceiver = f'{consts.ServerResponses.delivery()}{inputWords[1]}\n{message}\n'
-                    self.sendResponse(client, sentMsgToClient)
-                    self.sendResponse(self.users.get(receiverName), sentMsgToReceiver)  
+                await self.sendResponse(writer, sentMsg)
+                return
 
-    def disconnectClient(self, client):
-        clientName = [key for key, val in self.users.items() if val == client][0]
-        self.users.pop(clientName)
-        print("closing server")
-        client.close()
+            receiverName = inputWords[1]
+            if receiverName not in self.users:
+                sentMsg = consts.ServerResponses.noUserInDb()
+                await self.sendResponse(writer, sentMsg)  
+                return
 
-    def run(self):
+            message = "\n".join(inputWords[2:])
+            sentMsgToClient = consts.ServerResponses.okSend()
+            sentMsgToReceiver = f'{consts.ServerResponses.delivery()}{receiverName}\n{message}\n'
+            await self.sendResponse(writer, sentMsgToClient)
+            await self.sendResponse(self.users[receiverName], sentMsgToReceiver)
+
+    async def disconnectClient(self, writer):
+        clientName = next((key for key, val in self.users.items() if val == writer), None)
+        if clientName:
+            self.users.pop(clientName)
+            print(f"Disconnected: {clientName}")
+        writer.close()
+        await writer.wait_closed()
+
+    async def run(self):
         print("server is listening...")
-        while True:
-            client, address = self.server.accept()
-            print(f'Connected with {str(address)}')
-            thread = threading.Thread(target=self.receiveMsg, args=(client,))
-            thread.daemon = True
-            thread.start()
-            if not thread.is_alive:
-                thread.join()
-                break
-
+        server = await asyncio.start_server(self.receiveMsg, self.host, self.port)
+        async with server:
+            await server.serve_forever()
 
 if __name__ == "__main__":
     load_dotenv()
@@ -112,4 +115,6 @@ if __name__ == "__main__":
     port = os.getenv('PORT_NUMBER')
     server = Server(host, int(port))
     server.run()
+    asyncio.run(server.run())
+
 
