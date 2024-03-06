@@ -29,7 +29,6 @@ def recvMsg():
             while ("\n" not in receivedMsg):
                 partOfMsg = client.recv(4096).decode("utf-8")
                 receivedMsg += partOfMsg
-            print(receivedMsg)
             if consts.ServerResponses.okList() in receivedMsg:
                 outputWords = receivedMsg.split('\n')
                 availableUsers = outputWords[1]
