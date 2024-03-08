@@ -24,6 +24,7 @@ class Server:
                     if not chunk:  
                         break
                     receivedMsg += chunk.decode("utf-8")
+                print(receivedMsg)
                 if receivedMsg:
                     await self.processMessage(writer, receivedMsg)
                 else:  
@@ -75,6 +76,7 @@ class Server:
             availableUsers = ", ".join(self.users.keys())
             sentMsg = f'{consts.ServerResponses.okList()}{availableUsers}\n'
             await self.sendResponse(writer, sentMsg)
+            print("list sent")
 
     async def handleSend(self, writer, msg):
             inputWords = msg.split("\n")
@@ -114,7 +116,6 @@ if __name__ == "__main__":
     host = os.getenv('IP_ADDRESS')
     port = os.getenv('PORT_NUMBER')
     server = Server(host, int(port))
-    server.run()
     asyncio.run(server.run())
 
 
