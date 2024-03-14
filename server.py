@@ -1,13 +1,15 @@
 import os
 import asyncio
+import db
 from dotenv import load_dotenv
 import constants as consts
 
 
 class Server:
-    def __init__(self, host, port):
+    def __init__(self, host, port, db):
         self.host = host
         self.port = port
+        self.db = db
         self.users = {}
         self.lock = asyncio.Lock()
 
@@ -108,14 +110,17 @@ class Server:
     async def run(self):
         print("server is listening...")
         server = await asyncio.start_server(self.receiveMsg, self.host, self.port)
+
         async with server:
             await server.serve_forever()
 
-if __name__ == "__main__":
+async def main():
     load_dotenv()
     host = os.getenv('IP_ADDRESS')
     port = os.getenv('PORT_NUMBER')
+    dataBase = await db.AsyncDatabase()
     server = Server(host, int(port))
     asyncio.run(server.run())
 
+asyncio.run(main())
 
