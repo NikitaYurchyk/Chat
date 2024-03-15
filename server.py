@@ -6,10 +6,10 @@ import constants as consts
 
 
 class Server:
-    def __init__(self, host, port, db):
+    def __init__(self, host, port, database):
         self.host = host
         self.port = port
-        self.db = db
+        self.database = database
         self.users = {}
         self.lock = asyncio.Lock()
 
@@ -96,6 +96,8 @@ class Server:
             message = "\n".join(inputWords[2:])
             sentMsgToClient = consts.ServerResponses.okSend()
             sentMsgToReceiver = f'{consts.ServerResponses.delivery()}{receiverName}\n{message}\n'
+            senderName = next((key for key, val in self.users.items() if val == writer), None)
+            await self.database.sendMessage(receiverName, senderName, message)
             await self.sendResponse(writer, sentMsgToClient)
             await self.sendResponse(self.users[receiverName], sentMsgToReceiver)
 
@@ -109,6 +111,7 @@ class Server:
 
     async def run(self):
         print("server is listening...")
+        await self.database.initialize_db()
         server = await asyncio.start_server(self.receiveMsg, self.host, self.port)
 
         async with server:
@@ -118,9 +121,9 @@ async def main():
     load_dotenv()
     host = os.getenv('IP_ADDRESS')
     port = os.getenv('PORT_NUMBER')
-    dataBase = await db.AsyncDatabase()
-    server = Server(host, int(port))
-    asyncio.run(server.run())
+    dataBase = db.AsyncDatabase()
+    server = Server(host, int(port), dataBase)
+    await server.run()
 
 asyncio.run(main())
 

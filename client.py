@@ -3,14 +3,13 @@ import constants as consts
 import asyncio
 from dotenv import load_dotenv
 
-
 class Client:
     def __init__(self, host, port):
         self.host = host
         self.port = port
     
     
-    async def async_input(self, prompt: str = "") -> str:
+    async def asyncInput(self, prompt: str = "") -> str:
         return await asyncio.get_event_loop().run_in_executor(None, input, prompt)
 
 
@@ -86,7 +85,7 @@ class Client:
         try:
             reader, writer = await asyncio.open_connection(self.host, self.port)
                 
-            name = await self.async_input("Please enter your name:\n") 
+            name = await self.asyncInput("Please enter your name:\n")
             writer.write(f'{consts.ClientRequest.hello()}{name}\n'.encode("utf-8"))
             await writer.drain()
             receivedMsg = await self.getMsgFromSocket(reader)
