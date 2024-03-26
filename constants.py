@@ -9,11 +9,14 @@ class ClientRequest:
 
     @staticmethod
     def send():
-        return "SEND\n"
+        return "SENT\n"
     @staticmethod
-    def askForInput():
-        return ("Please enter your command: \nEnter your command\nList of users: !users\nSend msg: @receiver "
-                "msg\nQuit: !quit\n")
+    def askForCommand():
+        return ("Please type your command: \nList of users: !users\nSend msg: @<receiver> "
+                "<msg>\nAll received messages: !history\nQuit: !quit\nShow available commands: !commands\n")
+    @staticmethod
+    def askForHistory():
+        return ("HISTORY\n")
 
 
 class ServerResponses:
@@ -56,6 +59,9 @@ class ServerResponses:
     @staticmethod
     def unknown():
         return "UNKNOWN\n"
+    @staticmethod
+    def history():
+        return "HISTORY\n"
 
 
 class ClientResponses:

@@ -44,6 +44,8 @@ class Server:
             await self.handleList(writer)
         elif consts.ClientRequest.send() in msg:
             await self.handleSend(writer, msg)
+        elif consts.ClientRequest.askForHistory():
+            await self.sendMessages(writer)
         else:
             sentMsg = consts.ServerResponses.badRequestHeader()
             await self.sendResponse(writer, sentMsg)
@@ -99,6 +101,23 @@ class Server:
         await self.database.sendMessage(receiverName, senderName, message)
         await self.sendResponse(writer, sentMsgToClient)
         await self.sendResponse(self.users[receiverName], sentMsgToReceiver)
+        print(sentMsgToClient)
+        print(sentMsgToReceiver)
+    async def prepareMsg(self, lst) -> str:
+        msg = ""
+        for word in lst:
+            # problem with encrypted messages
+            msg += word[0] + " " + word[1] + " " + word[3][:-1] + "\n"
+        return msg
+
+    async def sendMessages(self, writer):
+        senderName = next((key for key, val in self.users.items() if val == writer), None)
+        lst = await self.database.getMessages(senderName)
+        msg = f'{consts.ServerResponses.history()}' + await self.prepareMsg(lst)
+
+        await self.sendResponse(writer, msg)
+        print(lst)
+
 
     async def disconnectClient(self, writer):
         clientName = next((key for key, val in self.users.items() if val == writer), None)

@@ -48,6 +48,14 @@ class AsyncDatabase:
             (now, sender, receiver, message_hash),
             db_path=self.messages_db
         )
+    async def getMessages(self, userName):
+        query = """
+                    SELECT date, sender, receiver, message
+                    FROM messages
+                    WHERE receiver = ?
+                    ORDER BY date ASC
+                """
+        return await self._execute(query, (userName,), db_path=self.messages_db)
 
     async def verifyPassword(self, username, password):
         result = await self._execute(
