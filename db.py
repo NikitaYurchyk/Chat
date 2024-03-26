@@ -30,9 +30,7 @@ class AsyncDatabase:
             receiver TEXT NOT NULL,
             message TEXT NOT NULL
         )"""
-        # Initialize users table
         await self._execute(users_table, db_path=self.users_db)
-        # Initialize messages table
         await self._execute(messages_table, db_path=self.messages_db)
 
     async def addUser(self, username, password):
@@ -61,3 +59,4 @@ class AsyncDatabase:
             return bcrypt.checkpw(password.encode(), hashed_password)
         else:
             return False
+

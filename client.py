@@ -1,21 +1,22 @@
 import os
+
+import constants
 import constants as consts
 import asyncio
 from dotenv import load_dotenv
+
 
 class Client:
     def __init__(self, host, port):
         self.host = host
         self.port = port
-    
-    
+
     async def asyncInput(self, prompt: str = "") -> str:
         return await asyncio.get_event_loop().run_in_executor(None, input, prompt)
 
-
     async def sendMsg(self, writer):
         while True:
-            command = await self.async_input()
+            command = await self.asyncInput(constants.ClientRequest.askForInput())
             if command.lower() == "!users":
                 writer.write(consts.ClientRequest.list().encode("utf-8"))
                 await writer.drain()
@@ -25,7 +26,7 @@ class Client:
                 writer.close()
                 await writer.wait_closed()
                 return
-            
+
             elif len(command.split(" ")) > 1:
                 inputWords = command.split(" ")
                 receiver = inputWords[0][1:]
@@ -35,7 +36,6 @@ class Client:
 
             else:
                 print(consts.Error.wrongCommand())
-    
 
     async def getMsgFromSocket(self, reader):
         receivedMsg = ""
@@ -47,21 +47,18 @@ class Client:
             print("msg received:", receivedMsg)
 
         return receivedMsg
-    
 
     async def printAvailableUsers(self, receivedMsg):
         availableUsers = receivedMsg.split("\n")[1]
-        await asyncio.sleep(1/1000.0)
+        await asyncio.sleep(1 / 1000.0)
         print(f'Available users: {availableUsers}')
-
 
     async def printReceivedMsg(self, receivedMsg):
         outputWords = receivedMsg.split("\n")
         sender = outputWords[1]
         message = ' '.join(outputWords[2:])
-        await asyncio.sleep(1/1000.0)
-        print(f'{sender}: {message}')
-
+        await asyncio.sleep(1 / 1000.0)
+        print(sender + ": " + message)
 
     async def recvMsg(self, reader):
         while True:
@@ -80,11 +77,10 @@ class Client:
             except Exception as e:
                 print(consts.Error.errorStartingTasks(str(e)))
                 return
-                
+
     async def run(self):
         try:
             reader, writer = await asyncio.open_connection(self.host, self.port)
-                
             name = await self.asyncInput("Please enter your name:\n")
             writer.write(f'{consts.ClientRequest.hello()}{name}\n'.encode("utf-8"))
             await writer.drain()
@@ -100,12 +96,10 @@ class Client:
                 print(consts.Error.serverIsFull())
             else:
                 print(receivedMsg)
-
             writer.close()
             await writer.wait_closed()
         except Exception as e:
             print(consts.Error.errorStartingTasks(str(e)))
-
 
 
 if __name__ == "__main__":
@@ -114,5 +108,4 @@ if __name__ == "__main__":
     port = int(os.getenv('PORT_NUMBER'))
     client = Client(host, port)
     asyncio.run(client.run())
-
 

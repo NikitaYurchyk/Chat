@@ -2,21 +2,25 @@ class ClientRequest:
     @staticmethod
     def hello():
         return "HELLO_FROM\n"
-    
+
     @staticmethod
     def list():
         return "LIST\n"
-    
+
     @staticmethod
     def send():
         return "SEND\n"
-    
-    
+    @staticmethod
+    def askForInput():
+        return ("Please enter your command: \nEnter your command\nList of users: !users\nSend msg: @receiver "
+                "msg\nQuit: !quit\n")
+
+
 class ServerResponses:
     @staticmethod
     def badRequestBody():
         return "BAD_RQST_BODY\n"
-    
+
     @staticmethod
     def badRequestHeader():
         return "BAD_RQST_HEADER\n"
@@ -24,19 +28,19 @@ class ServerResponses:
     @staticmethod
     def busy():
         return "TOO_MANY_USERS\n"
-    
+
     @staticmethod
     def inUse():
         return "IN_USE\n"
-    
+
     @staticmethod
     def okList():
         return "LIST_RECEIVED\n"
-    
+
     @staticmethod
     def okSend():
         return "SENT\n"
-    
+
     @staticmethod
     def delivery():
         return "DELIVERY\n"
@@ -45,7 +49,7 @@ class ServerResponses:
     def noUserInDb():
         return "NO_USER\n"
 
-    @staticmethod 
+    @staticmethod
     def hello():
         return "HELLO\n"
 
@@ -58,10 +62,11 @@ class ClientResponses:
     @staticmethod
     def loggedIn():
         return "You logged in"
+
     @staticmethod
     def msgSent():
         return "Message sent!"
-    
+
     @staticmethod
     def thanks():
         return "Thank you for using our program! See you again."
@@ -71,15 +76,15 @@ class Error:
     @staticmethod
     def serverIsFull():
         return "Servers is full!"
-    
+
     @staticmethod
     def usernameExists():
         return "User with such nickname already exists!"
 
-    @staticmethod 
+    @staticmethod
     def errorStartingTasks(e):
         print(f"Error starting tasks: {e}")
-    
+
     @staticmethod
     def invalidOrUnvalidUser():
         return "Invalid or unavailable user"
@@ -87,4 +92,4 @@ class Error:
     @staticmethod
     def wrongCommand():
         return "Wrong command! Please try again."
-    
+

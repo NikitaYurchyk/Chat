@@ -23,20 +23,20 @@ class Server:
                 receivedMsg = ""
                 while not receivedMsg.endswith("\n"):
                     chunk = await reader.read(4096)
-                    if not chunk:  
+                    if not chunk:
                         break
                     receivedMsg += chunk.decode("utf-8")
                 print(receivedMsg)
                 if receivedMsg:
                     await self.processMessage(writer, receivedMsg)
-                else:  
-                     await self.disconnectClient(writer)
-                     break 
+                else:
+                    await self.disconnectClient(writer)
+                    break
             except Exception as e:
                 print(e)
                 await self.disconnectClient(writer)
                 return
-            
+
     async def processMessage(self, writer, msg):
         if consts.ClientRequest.hello() in msg:
             await self.handleHello(writer, msg)
@@ -55,19 +55,19 @@ class Server:
             sentMsg = consts.ServerResponses.badRequestBody()
             await self.sendResponse(writer, sentMsg)
             return
-        
+
         elif len(self.users) == 10:
             sentMsg = consts.ServerResponses.busy()
             await self.sendResponse(writer, sentMsg)
             return
-        
+
         else:
             name = inputWords[1].replace("\n", "")
             if name in self.users:
                 sentMsg = consts.ServerResponses.inUse()
                 await self.sendResponse(writer, sentMsg)
                 return
-            
+
             else:
                 async with self.lock:
                     self.users[name] = writer
@@ -75,31 +75,30 @@ class Server:
                 await self.sendResponse(writer, sentMsg)
 
     async def handleList(self, writer):
-            availableUsers = ", ".join(self.users.keys())
-            sentMsg = f'{consts.ServerResponses.okList()}{availableUsers}\n'
-            await self.sendResponse(writer, sentMsg)
-            print("list sent")
+        availableUsers = ", ".join(self.users.keys())
+        sentMsg = f'{consts.ServerResponses.okList()}{availableUsers}\n'
+        await self.sendResponse(writer, sentMsg)
 
     async def handleSend(self, writer, msg):
-            inputWords = msg.split("\n")
-            if (len(inputWords) < 3):
-                sentMsg = consts.ServerResponses.badRequestBody()
-                await self.sendResponse(writer, sentMsg)
-                return
+        inputWords = msg.split("\n")
+        if (len(inputWords) < 3):
+            sentMsg = consts.ServerResponses.badRequestBody()
+            await self.sendResponse(writer, sentMsg)
+            return
 
-            receiverName = inputWords[1]
-            if receiverName not in self.users:
-                sentMsg = consts.ServerResponses.noUserInDb()
-                await self.sendResponse(writer, sentMsg)  
-                return
+        receiverName = inputWords[1]
+        if receiverName not in self.users:
+            sentMsg = consts.ServerResponses.noUserInDb()
+            await self.sendResponse(writer, sentMsg)
+            return
 
-            message = "\n".join(inputWords[2:])
-            sentMsgToClient = consts.ServerResponses.okSend()
-            sentMsgToReceiver = f'{consts.ServerResponses.delivery()}{receiverName}\n{message}\n'
-            senderName = next((key for key, val in self.users.items() if val == writer), None)
-            await self.database.sendMessage(receiverName, senderName, message)
-            await self.sendResponse(writer, sentMsgToClient)
-            await self.sendResponse(self.users[receiverName], sentMsgToReceiver)
+        message = "\n".join(inputWords[2:])
+        sentMsgToClient = consts.ServerResponses.okSend()
+        sentMsgToReceiver = f'{consts.ServerResponses.delivery()}{receiverName}\n{message}\n'
+        senderName = next((key for key, val in self.users.items() if val == writer), None)
+        await self.database.sendMessage(receiverName, senderName, message)
+        await self.sendResponse(writer, sentMsgToClient)
+        await self.sendResponse(self.users[receiverName], sentMsgToReceiver)
 
     async def disconnectClient(self, writer):
         clientName = next((key for key, val in self.users.items() if val == writer), None)
@@ -117,6 +116,7 @@ class Server:
         async with server:
             await server.serve_forever()
 
+
 async def main():
     load_dotenv()
     host = os.getenv('IP_ADDRESS')
@@ -124,6 +124,7 @@ async def main():
     dataBase = db.AsyncDatabase()
     server = Server(host, int(port), dataBase)
     await server.run()
+
 
 asyncio.run(main())
 
