@@ -16,13 +16,6 @@ TCP Chat is a real-time chat application developed using Python over TCP/IP, off
 - Python 3.x
 - SQLite
 
-### Setup
-1. **Clone the Repository**
-   - Clone this repository to your local machine to get started.
-2. **Environment Setup**
-   - Ensure Python 3.x is installed on your system.
-   - [Optional] Set up Docker for containerization.
-
 ### Running the Application
 1. **Start the Server**
    - Navigate to the application directory and run the server using:
